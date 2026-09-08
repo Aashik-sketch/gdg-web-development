@@ -37,6 +37,7 @@ export default function SignInForm() {
   const [password, setPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [googleSubmitting, setGoogleSubmitting] = useState(false);
 
   useEffect(() => {
     if (session?.user && !isPending) {
@@ -122,11 +123,29 @@ export default function SignInForm() {
   };
 
   const handleGoogle = async () => {
+    if (submitting || googleSubmitting) return;
+
+    setGoogleSubmitting(true);
     try {
-      await authClient.signIn.social({ provider: "google", callbackURL: returnTo });
+      const res = await authClient.signIn.social({
+        provider: "google",
+        callbackURL: returnTo,
+      });
+
+      if (res?.error) {
+        console.error("Google sign-in error:", res.error);
+        toast.error(
+          res.error.message ||
+            "Google sign-in could not be started. Please try again.",
+        );
+      }
     } catch (err) {
       console.error("Google sign-in error:", err);
-      toast.error("Could not start Google sign-in.");
+      toast.error(
+        "Google sign-in is unavailable right now. Please try again.",
+      );
+    } finally {
+      setGoogleSubmitting(false);
     }
   };
 
@@ -282,9 +301,17 @@ export default function SignInForm() {
             variant="outline"
             className="w-full"
             onClick={handleGoogle}
-            disabled={submitting}
+            disabled={submitting || googleSubmitting}
+            aria-busy={googleSubmitting}
           >
-            Continue with Google
+            {googleSubmitting ? (
+              <>
+                <Spinner size="sm" label="Connecting to Google" className="mr-2" />
+                <span aria-hidden="true">Connecting to Google…</span>
+              </>
+            ) : (
+              "Continue with Google"
+            )}
           </Button>
         </CardContent>
       </Card>
