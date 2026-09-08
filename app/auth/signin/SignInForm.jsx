@@ -127,24 +127,33 @@ export default function SignInForm() {
 
     setGoogleSubmitting(true);
     try {
+      const callbackURL =
+        typeof window === "undefined"
+          ? returnTo
+          : new URL(returnTo, window.location.origin).toString();
+
       const res = await authClient.signIn.social({
         provider: "google",
-        callbackURL: returnTo,
+        callbackURL,
       });
 
       if (res?.error) {
         console.error("Google sign-in error:", res.error);
         toast.error(
           res.error.message ||
-            "Google sign-in could not be started. Please try again.",
+            "Google sign-in could not be started. Check the Google OAuth configuration.",
         );
+        setGoogleSubmitting(false);
       }
+      // On success Better Auth redirects the browser to Google. Do not
+      // immediately reset the state because that creates a visible flicker.
     } catch (err) {
       console.error("Google sign-in error:", err);
       toast.error(
-        "Google sign-in is unavailable right now. Please try again.",
+        err instanceof Error && err.message
+          ? err.message
+          : "Google sign-in is unavailable right now. Please try again.",
       );
-    } finally {
       setGoogleSubmitting(false);
     }
   };
